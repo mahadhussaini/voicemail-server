@@ -12,21 +12,42 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// For answering the call
 app.get("/answer", (req, res) => {
-  const message = req.query.message || "Please leave a message after the beep.";
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <SpeakSentence>${message}</SpeakSentence>
-  <Record maxDuration="30" />
-</Response>`;
-  res.type("application/xml");
-  res.send(xml);
+  const bxml = `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Response>
+      <SpeakSentence voice="susan">Please hold while we check for voicemail.</SpeakSentence>
+    </Response>
+  `;
+  res.type("application/xml").send(bxml.trim());
 });
 
-// Optional: Machine detection callback (you can log it)
-app.post("/machineDetectionCallback", (req, res) => {
-  console.log("Machine detection callback hit", req.body);
+app.post("/machineDetectionCallback", async (req, res) => {
+  const { result, callId } = req.body;
+
+  console.log("Machine detection result:", result);
+
+  if (result === "answering-machine") {
+    try {
+      await axios.post(
+        `https://voice.bandwidth.com/api/v2/accounts/${BANDWIDTH_ACCOUNT_ID}/calls/${callId}/redirect`,
+        {
+          redirectUrl: "https://voicemail-42qw.onrender.com/play-voicemail",
+        },
+        {
+          auth: {
+            username: BANDWIDTH_USERNAME,
+            password: BANDWIDTH_PASSWORD,
+          },
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      console.log("Redirected to voicemail playback.");
+    } catch (err) {
+      console.error("Redirect failed:", err.response?.data || err.message);
+    }
+  }
+
   res.sendStatus(200);
 });
 
