@@ -74,33 +74,36 @@ app.post("/api/create-voicemail", async (req, res) => {
   }
 
   try {
+    const payload = {
+      from,
+      to,
+      answerUrl: "https://voicemail-42qw.onrender.com/answer",
+      answerMethod: "GET",
+      disconnectMethod: "POST",
+      machineDetection: {
+        mode: "enable",
+        detectionTimeout: 5000,
+        silenceTimeout: 2000,
+        speechThreshold: 500,
+        speechEndThreshold: 1000,
+      },
+      machineDetectionCallbackUrl:
+        "https://voicemail-42qw.onrender.com/machineDetectionCallback",
+      machineDetectionCallbackMethod: "POST",
+      tags: {
+        message,
+      },
+    };
+
     const response = await axios.post(
       `https://voice.bandwidth.com/api/v2/accounts/${BANDWIDTH_ACCOUNT_ID}/calls`,
-      {
-        from,
-        to,
-        answerUrl: "https://voicemail-42qw.onrender.com/answer",
-        answerMethod: "GET",
-        disconnectMethod: "POST",
-        machineDetection: "enable",
-        machineDetectionSilenceTimeout: 5000,
-        machineDetectionMaxSpeechDuration: 10000,
-        machineDetectionSpeechThreshold: 500,
-        machineDetectionCallbackUrl:
-          "https://voicemail-42qw.onrender.com/machineDetectionCallback",
-        machineDetectionCallbackMethod: "POST",
-        tags: {
-          message: message || "voicemail",
-        },
-      },
+      payload,
       {
         auth: {
           username: BANDWIDTH_USERNAME,
           password: BANDWIDTH_PASSWORD,
         },
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       }
     );
 
