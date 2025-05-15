@@ -35,7 +35,7 @@ app.post("/machineDetectionCallback", async (req, res) => {
       await axios.post(
         `https://voice.bandwidth.com/api/v2/accounts/${BANDWIDTH_ACCOUNT_ID}/calls/${callId}/redirect`,
         {
-          redirectUrl: "https://your-ngrok-url.com/play-voicemail",
+          redirectUrl: "https://voicemail-42qw.onrender.com/play-voicemail",
         },
         {
           auth: {
