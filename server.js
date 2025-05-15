@@ -8,45 +8,25 @@ const BANDWIDTH_ACCOUNT_ID = "5010907";
 const BANDWIDTH_USERNAME = "f513b197-7c4c-4873-837c-b32869cc4e44";
 const BANDWIDTH_PASSWORD = "52PTwq7qyVUb5Py";
 
+app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// For answering the call
 app.get("/answer", (req, res) => {
-  const bxml = `
-    <?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-      <SpeakSentence voice="susan">Please hold while we check for voicemail.</SpeakSentence>
-    </Response>
-  `;
-  res.type("application/xml").send(bxml.trim());
+  const message = req.query.message || "Please leave a message after the beep.";
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <SpeakSentence>${message}</SpeakSentence>
+  <Record maxDuration="30" />
+</Response>`;
+  res.type("application/xml");
+  res.send(xml);
 });
 
-app.post("/machineDetectionCallback", async (req, res) => {
-  const { result, callId } = req.body;
-
-  console.log("Machine detection result:", result);
-
-  if (result === "answering-machine") {
-    try {
-      await axios.post(
-        `https://voice.bandwidth.com/api/v2/accounts/${BANDWIDTH_ACCOUNT_ID}/calls/${callId}/redirect`,
-        {
-          redirectUrl: "https://voicemail-42qw.onrender.com/play-voicemail",
-        },
-        {
-          auth: {
-            username: BANDWIDTH_USERNAME,
-            password: BANDWIDTH_PASSWORD,
-          },
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      console.log("Redirected to voicemail playback.");
-    } catch (err) {
-      console.error("Redirect failed:", err.response?.data || err.message);
-    }
-  }
-
+// Optional: Machine detection callback (you can log it)
+app.post("/machineDetectionCallback", (req, res) => {
+  console.log("Machine detection callback hit", req.body);
   res.sendStatus(200);
 });
 
@@ -69,41 +49,38 @@ app.get("/speak-voicemail", (req, res) => {
 app.post("/api/create-voicemail", async (req, res) => {
   const { to, from, message } = req.body;
 
-  if (!to || !from) {
-    return res.status(400).json({ error: 'Missing "to" or "from" fields' });
+  if (!to || !from || !message) {
+    return res
+      .status(400)
+      .json({ error: "Missing to, from, or message field" });
   }
 
   try {
-    const payload = {
-      from,
-      to,
-      answerUrl: "https://voicemail-42qw.onrender.com/answer",
-      answerMethod: "GET",
-      disconnectMethod: "POST",
-      machineDetection: {
-        mode: "enable",
-        detectionTimeout: 5000,
-        silenceTimeout: 2000,
-        speechThreshold: 500,
-        speechEndThreshold: 1000,
-      },
-      machineDetectionCallbackUrl:
-        "https://voicemail-42qw.onrender.com/machineDetectionCallback",
-      machineDetectionCallbackMethod: "POST",
-      tags: {
-        message,
-      },
-    };
-
     const response = await axios.post(
-      `https://voice.bandwidth.com/api/v2/accounts/${BANDWIDTH_ACCOUNT_ID}/calls`,
-      payload,
+      `https://voice.bandwidth.com/api/v2/accounts/${process.env.BANDWIDTH_ACCOUNT_ID}/calls`,
+      {
+        from,
+        to,
+        answerUrl: "https://voicemail-42qw.onrender.com/answer",
+        answerMethod: "GET",
+        machineDetection: {
+          mode: "enable",
+        },
+        machineDetectionCallbackUrl:
+          "https://voicemail-42qw.onrender.com/machineDetectionCallback",
+        machineDetectionCallbackMethod: "POST",
+        tags: {
+          message,
+        },
+      },
       {
         auth: {
-          username: BANDWIDTH_USERNAME,
-          password: BANDWIDTH_PASSWORD,
+          username: process.env.BANDWIDTH_USERNAME,
+          password: process.env.BANDWIDTH_PASSWORD,
         },
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
 
@@ -112,13 +89,11 @@ app.post("/api/create-voicemail", async (req, res) => {
       callId: response.data.callId,
     });
   } catch (error) {
-    console.error(
-      "Bandwidth call error:",
-      error.response?.data || error.message
-    );
+    const details = error.response?.data || error.message;
+    console.error("Create Voicemail Call Failed:", details);
     res.status(500).json({
       error: "Failed to create voicemail call",
-      details: error.response?.data || error.message,
+      details,
     });
   }
 });
