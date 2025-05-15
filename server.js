@@ -21,7 +21,7 @@ app.get("/answer", (req, res) => {
       <SpeakSentence voice="susan">Please hold while we check for voicemail.</SpeakSentence>
     </Response>
   `;
-  res.type("application/xml").send(bxml);
+  res.type("application/xml").send(bxml.trim());
 });
 
 // 2. Callback when machine detection is complete
