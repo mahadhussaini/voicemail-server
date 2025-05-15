@@ -63,7 +63,16 @@ app.get("/play-voicemail", (req, res) => {
   res.type("application/xml").send(bxml.trim());
 });
 
-// 4. Serve the audio file
+// 4. Fallback: Speak voicemail using text-to-speech
+app.get("/speak-voicemail", (req, res) => {
+  const bxml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <SpeakSentence voice="susan">Hi. We’re sorry we missed your call. Please leave a message or call again later.</SpeakSentence>
+</Response>`;
+  res.type("application/xml").send(bxml.trim());
+});
+
+// 5. Serve the audio file
 app.use("/voicemail.mp3", express.static("voicemail.mp3"));
 
 app.listen(PORT, () => {
