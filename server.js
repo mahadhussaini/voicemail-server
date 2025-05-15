@@ -56,13 +56,11 @@ app.post("/machineDetectionCallback", async (req, res) => {
 
 // 3. Endpoint that plays the voicemail
 app.get("/play-voicemail", (req, res) => {
-  const bxml = `
-    <?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-      <PlayAudio>https://your-ngrok-url.com/voicemail.mp3</PlayAudio>
-    </Response>
-  `;
-  res.type("application/xml").send(bxml);
+  const bxml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <PlayAudio>https://voicemail-42qw.onrender.com/voicemail.mp3</PlayAudio>
+</Response>`;
+  res.type("application/xml").send(bxml.trim());
 });
 
 // 4. Serve the audio file
